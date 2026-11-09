@@ -1,0 +1,47 @@
+# Publishes the Whitehole download page, with the newest app file inside it (download/Whitehole.apk),
+# so friends download straight from the page and never see GitHub.
+# One-time setup: this repo's Settings › Pages › Source: "GitHub Actions".
+name: Publish the download page
+
+on:
+  release:
+    types: [published]        # a new app build was published here
+  push:
+    branches: [main]          # the page itself was changed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Put the newest app file in the page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p download
+          gh release download --repo "${{ github.repository }}" --pattern 'Whitehole.apk' --dir download --clobber \
+            || gh release download --repo "${{ github.repository }}" --pattern 'Jarvis.apk' --dir download --clobber || true
+          [ -f download/Jarvis.apk ] && [ ! -f download/Whitehole.apk ] && mv download/Jarvis.apk download/Whitehole.apk || true
+          # The build number, so the app can say "a new version is ready".
+          tag=$(gh release view --repo "${{ github.repository }}" --json tagName -q .tagName 2>/dev/null || echo v0)
+          echo "{\"build\": ${tag#v}}" > download/version.json
+          ls -la download
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
