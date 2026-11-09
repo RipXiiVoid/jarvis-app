@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Whitehole · Your own voice assistant</title>
+<meta name="description" content="Whitehole is a free voice assistant for Android and iPhone. Say “Hey Whitehole” from anywhere and it pops up, listens, answers and gets things done.">
+<meta property="og:title" content="Whitehole · Your own voice assistant">
+<meta property="og:description" content="Say “Hey Whitehole” from anywhere. Free for Android.">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='.5' stop-color='%23c9d3e8'/%3E%3Cstop offset='1' stop-color='%23050507'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000000; --bg2: #0b0b0e; --card: rgba(255,255,255,.045); --line: rgba(255,255,255,.09);
+  --text: #f5f7fc; --muted: #a4a9b6; --dim: #6d717c;
+  --violet: #e9eefb; --pink: #9aa3b8; --blue: #c9d3e8; --cyan: #ffffff;
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.55 Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { color: inherit; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+/* background glow */
+.aurora { position: fixed; inset: -20% -10% auto; height: 110vh; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 30% 30%, rgba(220,228,245,.28), transparent 70%),
+    radial-gradient(35% 30% at 72% 25%, rgba(190,198,215,.18), transparent 70%),
+    radial-gradient(40% 40% at 50% 70%, rgba(175,185,210,.12), transparent 70%);
+  filter: blur(20px); }
+
+/* nav */
+nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; font-size: 18px; text-decoration: none; }
+.brand i { width: 26px; height: 26px; border-radius: 50%; display: block;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #e9eefb 55%, #1b1340); box-shadow: 0 0 18px rgba(220,228,245,.7); }
+.nav-dl { font-size: 14px; font-weight: 600; text-decoration: none; padding: 9px 16px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid var(--line); }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; padding: 36px 0 70px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #d9ccff;
+  padding: 6px 12px; border-radius: 999px; background: rgba(220,228,245,.14); border: 1px solid rgba(220,228,245,.35); }
+.eyebrow b { width: 7px; height: 7px; border-radius: 50%; background: #e9eefb; box-shadow: 0 0 10px #e9eefb; }
+h1 { font-size: clamp(42px, 7vw, 76px); line-height: 1.02; letter-spacing: -2px; margin: 18px 0 16px; font-weight: 800; }
+h1 em { font-style: normal; background: linear-gradient(90deg, #dfe6f5, #ffffff 45%, #7cc4ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: 19px; color: var(--muted); max-width: 520px; margin: 0 0 28px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; font-size: 17px;
+  padding: 16px 26px; border-radius: 999px; border: 0; cursor: pointer; transition: transform .15s, box-shadow .2s; }
+.btn:active { transform: scale(.97); }
+.btn-main { color: #050507; background: linear-gradient(135deg, #ffffff, #dfe6f5 50%, #b9c3d9);
+  box-shadow: 0 10px 34px rgba(220,228,245,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-main:hover { box-shadow: 0 14px 44px rgba(220,228,245,.7), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-ghost { color: var(--text); background: rgba(255,255,255,.07); border: 1px solid var(--line); }
+.btn svg { width: 22px; height: 22px; }
+.fine { margin-top: 14px; font-size: 13px; color: var(--dim); }
+.stage { position: relative; display: grid; place-items: center; }
+.stage canvas { width: min(440px, 88vw); height: min(440px, 88vw); }
+.bubble { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); width: min(360px, 84vw);
+  padding: 14px 18px; border-radius: 20px; background: rgba(16,16,22,.82); border: 1px solid var(--line);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+.bubble .you { color: var(--muted); font-size: 14px; min-height: 21px; }
+.bubble .me { font-size: 16px; font-weight: 600; min-height: 24px; margin-top: 2px; }
+.caret::after { content: "▍"; color: #dfe6f5; animation: blink 1s steps(1) infinite; margin-left: 1px; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* sections */
+section { padding: 70px 0; }
+.kicker { color: #dfe6f5; font-weight: 700; font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; }
+h2 { font-size: clamp(30px, 4.5vw, 46px); line-height: 1.1; letter-spacing: -1px; margin: 10px 0 14px; font-weight: 800; }
+.sub { color: var(--muted); font-size: 18px; max-width: 620px; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+.card { padding: 24px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line);
+  transition: transform .25s, border-color .25s, background .25s; }
+.card:hover { transform: translateY(-3px); border-color: rgba(220,228,245,.45); background: rgba(220,228,245,.07); }
+.ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 16px; }
+.ic svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* say it */
+.phrases { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.phrase { padding: 11px 16px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 15px; }
+.phrase b { color: #c9b6ff; font-weight: 600; }
+
+/* install */
+.install { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+.steps { list-style: none; margin: 30px 0 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; position: relative; padding: 0 0 22px 56px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 800; background: linear-gradient(135deg, #ffffff, #b9c3d9); box-shadow: 0 6px 18px rgba(220,228,245,.45); }
+.steps li:not(:last-child)::after { content: ""; position: absolute; left: 18px; top: 40px; bottom: 4px; width: 2px; background: var(--line); }
+.steps h4 { margin: 4px 0 4px; font-size: 17px; }
+.steps p { margin: 0; color: var(--muted); font-size: 15px; }
+.qr-card { padding: 28px; border-radius: 28px; text-align: center; background:
+  radial-gradient(120% 90% at 50% 0%, rgba(220,228,245,.25), transparent 60%), var(--card); border: 1px solid var(--line); }
+.qr { width: 220px; height: 220px; margin: 0 auto 18px; padding: 12px; background: #fff; border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,.45); }
+.qr svg, .qr img { width: 100%; height: 100%; display: block; }
+.qr-card h3 { margin: 0 0 6px; font-size: 20px; }
+.qr-card p { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+
+/* faq */
+details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; list-style: none; font-weight: 600; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: #dfe6f5; font-size: 22px; line-height: 1; transition: transform .2s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { color: var(--muted); margin: 10px 0 0; font-size: 15px; }
+
+/* final */
+.final { text-align: center; padding: 80px 20px 90px; margin: 30px 0 0; border-radius: 34px;
+  background: radial-gradient(60% 80% at 50% 0%, rgba(220,228,245,.32), transparent 70%), var(--bg2); border: 1px solid var(--line); }
+.final h2 { margin-top: 0; }
+.final .sub { margin: 0 auto 28px; }
+/* invite-only gate */
+body.locked > *:not(.aurora):not(#gate) { display: none !important; }
+#gate { display: none; min-height: 100vh; place-items: center; text-align: center; padding: 30px 22px; }
+body.locked #gate { display: grid; }
+#gate canvas { width: 180px; height: 180px; display: block; margin: 0 auto 10px; }
+#gate h1 { font-size: 34px; letter-spacing: -1px; margin: 6px 0 10px; }
+#gate p { color: var(--muted); max-width: 360px; margin: 0 auto 22px; }
+#gate form { display: flex; gap: 8px; max-width: 340px; margin: 0 auto; }
+#gate input { flex: 1; min-width: 0; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--text); font: inherit; }
+#gate button { padding: 14px 18px; border-radius: 14px; border: 0; font: inherit; font-weight: 700; color: #fff; background: var(--violet); cursor: pointer; }
+#gate .err { color: #ff6b8a; font-size: 14px; min-height: 20px; margin-top: 10px; }
+.pair { display: flex; flex-wrap: wrap; gap: 12px; justify-content: inherit; }
+.final .pair, .qr-card .pair { justify-content: center; }
+.pair .btn svg { width: 20px; height: 20px; }
+.pair .btn.alt { color: var(--text); background: rgba(255,255,255,.07); border: 1px solid var(--line); box-shadow: none; }
+body.ios .pair [data-dl="ios"] { order: -1; }
+.ios-note { display: none; margin-top: 14px; font-size: 14px; color: var(--muted); max-width: 520px; }
+body.ios .ios-note { display: block; }
+footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0 50px; }
+
+/* reveal on scroll */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; text-align: center; padding-top: 10px; gap: 10px; }
+  .hero .lede { margin-left: auto; margin-right: auto; }
+  .cta { justify-content: center; }
+  .stage { order: -1; }
+  .grid { grid-template-columns: 1fr; }
+  .install { grid-template-columns: 1fr; }
+  .qr-card.desktop-only { display: none; }
+  section { padding: 54px 0; }
+}
+@media (min-width: 861px) { .mobile-only { display: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+.isheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.6); backdrop-filter: blur(6px); }
+.isheet[hidden] { display: none; }
+.isheet-card { position: relative; width: 100%; max-width: 520px; margin: 0 auto; padding: 26px 22px calc(26px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0;
+  background: #0b0b0e; border: 1px solid var(--line); box-shadow: 0 -20px 60px rgba(0,0,0,.6); animation: sheetup .3s ease-out; }
+@keyframes sheetup { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.isheet-x { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 17px; border: 0; background: rgba(255,255,255,.08); color: var(--text); font-size: 15px; }
+.isheet-icon { width: 64px; height: 64px; border-radius: 16px; background: url(./ios/icon.png) center/cover; box-shadow: 0 0 30px rgba(220,228,245,.25); }
+.isheet h3 { margin: 14px 0 4px; font-size: 22px; } .isheet-sub { margin: 0 0 10px; color: var(--muted); }
+.isheet ol { margin: 0 0 18px; padding-left: 20px; } .isheet li { margin: 9px 0; color: var(--muted); } .isheet li b { color: var(--text); }
+.isheet-again { width: 100%; justify-content: center; }
+@media (min-width: 700px) { .isheet { align-items: center; } .isheet-card { border-radius: 26px; } }
+</style>
+</head>
+<body class="locked">
+<div id="installSheet" class="isheet" hidden>
+  <div class="isheet-card">
+    <button class="isheet-x" aria-label="Close">✕</button>
+    <div class="isheet-icon"></div>
+    <h3>Downloading Whitehole…</h3>
+    <p class="isheet-sub">It’s saving to your phone now. Then:</p>
+    <ol>
+      <li><b>Open it.</b> Tap the download in the notification, or in <b>My Files › Downloads</b>.</li>
+      <li><b>Allow it once.</b> If your phone asks, tap <b>Settings</b> › turn on <b>Allow from this source</b> › go back.</li>
+      <li><b>Tap Install.</b> If Play Protect pops up, tap <b>More details › Install anyway</b>. It warns about every app that isn’t from the Play Store.</li>
+      <li><b>Open Whitehole</b> and tap <b>Turn on everything</b>. Say “Hey Whitehole”.</li>
+    </ol>
+    <a class="btn btn-main isheet-again" href="#">Download again</a>
+  </div>
+</div>
+
+<div id="gate">
+  <div>
+    <canvas id="gateOrb" width="360" height="360"></canvas>
+    <h1>Invite only</h1>
+    <p>Whitehole is for friends right now. Open the link a friend sent you, scan their code, or type the invite code here.</p>
+    <form id="gateForm"><input id="gateCode" placeholder="Invite code" autocomplete="off" autocapitalize="off" spellcheck="false"><button>Enter</button></form>
+    <div class="err" id="gateErr"></div>
+  </div>
+</div>
+<div class="aurora"></div>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#"><i></i>Whitehole</a>
+    <a class="nav-dl" href="#how">Get it free</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="eyebrow"><b></b>Free for Android and iPhone</span>
+      <h1>Your own<br><em>voice assistant.</em></h1>
+      <p class="lede">Say “Hey Whitehole” from anywhere. It pops up over whatever you’re doing, listens, answers out loud and gets things done, just like Siri.</p>
+      <div class="cta">
+        <div class="pair"><a class="btn btn-main dl" href="#" data-dl="android"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.5l1.6-2.8a.4.4 0 00-.7-.4l-1.6 2.8A9.8 9.8 0 0012 8a9.8 9.8 0 00-4.9 1.1L5.5 6.3a.4.4 0 00-.7.4l1.6 2.8A9.3 9.3 0 001.5 17h21a9.3 9.3 0 00-4.9-7.5zM7 14.4a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg> Get for Android</a><a class="btn btn-main dl" href="#" data-dl="ios"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.3.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-.9-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.8 1-2.8-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.6-1.3z"/></svg> Get for iOS</a></div>
+      </div>
+      <p class="fine">Free · Android 8+ or any iPhone · no account needed</p>
+      <p class="ios-note">On iPhone, Whitehole runs as a web app: tap <b>Get for iOS</b>, then Share › <b>Add to Home Screen</b>. iPhones don’t let other assistants listen in the background, so you tap the orb to talk.</p>
+    </div>
+    <div class="stage">
+      <canvas id="orb" width="880" height="880" aria-label="The Whitehole orb"></canvas>
+      <div class="bubble" aria-hidden="true">
+        <div class="you" id="you"></div>
+        <div class="me" id="me"></div>
+      </div>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="reveal">
+      <span class="kicker">What it does</span>
+      <h2>Everything you’d want from Siri.<br>On any Android phone.</h2>
+      <p class="sub">No subscriptions and no setup. Install it, tap Allow, and start talking.</p>
+    </div>
+    <div class="grid">
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#e9eefb,#b084ff)"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
+        <h3>Hey Whitehole, from anywhere</h3><p>The wake word works with the app closed, on the home screen or inside other apps.</p></div>
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#9aa3b8,#ff7b9c)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 15h8"/></svg></div>
+        <h3>Pops up like Siri</h3><p>A glowing orb slides up over whatever you’re doing, then tucks itself away.</p></div>
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#c9d3e8,#ffffff)"><svg viewBox="0 0 24 24"><path d="M9.5 3.5a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 .5V5a2.5 2.5 0 0 0-3-1.5ZM14.5 3.5a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 .5"/></svg></div>
+        <h3>A free brain</h3><p>Ask anything. One tap gives your phone its own free AI account, and it can also run offline.</p></div>
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#ff9500,#ffcc00)"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5M9 2.5h6"/></svg></div>
+        <h3>Gets things done</h3><p>Timers, alarms, calls, texts, the torch, volume, music, maps and opening any app.</p></div>
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#30d158,#00c7be)"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Private by design</h3><p>The wake word, listening and phone controls run on your phone, not on someone’s server.</p></div>
+      <div class="card reveal"><div class="ic" style="background:linear-gradient(135deg,#c850ff,#ff375f)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M7.5 10.5c1.5-2.5 5-3 7-1.2M9 15.5c2 1.3 5 .8 6.5-1.5"/></svg></div>
+        <h3>Make it yours</h3><p>Pick the orb’s colours, its voice and accent, its name, and your own wake word.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <span class="kicker">Just say</span>
+    <h2>Talk to it like a person.</h2>
+    <div class="phrases">
+      <span class="phrase"><b>Hey Whitehole,</b> set a timer for 10 minutes</span>
+      <span class="phrase"><b>Hey Whitehole,</b> what’s the capital of Japan?</span>
+      <span class="phrase"><b>Hey Whitehole,</b> turn on the torch</span>
+      <span class="phrase"><b>Hey Whitehole,</b> call Mum</span>
+      <span class="phrase"><b>Hey Whitehole,</b> open YouTube</span>
+      <span class="phrase"><b>Hey Whitehole,</b> wake me up at 7:30</span>
+      <span class="phrase"><b>Hey Whitehole,</b> tell me a fun fact</span>
+      <span class="phrase"><b>Hey Whitehole,</b> navigate to the nearest Tesco</span>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap install">
+    <div class="reveal">
+      <span class="kicker">Install</span>
+      <h2>Ready in a minute.</h2>
+      <p class="sub">Whitehole isn’t on the Play Store yet, so Android asks you to confirm once.</p>
+      <ol class="steps">
+        <li><h4>Download</h4><p>Tap <b>Get for Android</b> on your phone. It saves the Whitehole app.</p></li>
+        <li><h4>Open it</h4><p>Tap the download. If your phone asks, turn on <b>Allow from this source</b> for your browser, then go back.</p></li>
+        <li><h4>Install</h4><p>Tap <b>Install</b>. If Play Protect warns you, tap <b>More details › Install anyway</b>. It only warns because the app isn’t from the Play Store.</p></li>
+        <li><h4>Say hi</h4><p>Open Whitehole and tap <b>Allow</b> on everything. Then just say “Hey Whitehole”.</p></li>
+      </ol>
+    </div>
+    <div class="qr-card reveal desktop-only" id="get">
+      <div class="qr" id="qr"></div>
+      <h3>On your computer?</h3>
+      <p>Scan this with your phone’s camera, Android or iPhone, to open this page there.</p>
+      <div class="pair"><a class="btn btn-main dl" href="#" data-dl="android"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.5l1.6-2.8a.4.4 0 00-.7-.4l-1.6 2.8A9.8 9.8 0 0012 8a9.8 9.8 0 00-4.9 1.1L5.5 6.3a.4.4 0 00-.7.4l1.6 2.8A9.3 9.3 0 001.5 17h21a9.3 9.3 0 00-4.9-7.5zM7 14.4a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg> Get for Android</a><a class="btn btn-main dl" href="#" data-dl="ios"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.3.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-.9-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.8 1-2.8-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.6-1.3z"/></svg> Get for iOS</a></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <span class="kicker">Questions</span>
+    <h2>Good to know</h2>
+    <details><summary>Is it really free?</summary><p>Yes. Phone controls, the wake word and listening run on your phone for free. For chatting, one tap connects a free OpenRouter account that gives your phone its own free AI, about 50 answers a day. Without that, a free guest brain still answers one question every 30 seconds, and you can download an offline brain too.</p></details>
+    <details><summary>Does it work on iPhone?</summary><p>Yes, as a web app. Open this page on the iPhone, tap <b>Get for iOS</b>, then Share › <b>Add to Home Screen</b>. Apple doesn’t let other assistants listen in the background or control the phone, so on iPhone you tap the orb to talk. Tip: make a Shortcut that opens it, and “Hey Siri, Whitehole” launches it.</p></details>
+    <details><summary>Why does it show a “Listening…” notification?</summary><p>Android only lets an app use the microphone in the background if it shows a notification. Whitehole keeps it silent and as small as Android allows.</p></details>
+    <details><summary>Is it safe to install from outside the Play Store?</summary><p>Only install apps from people you trust. This page and the download come straight from the developer’s GitHub. Whitehole asks for the microphone, contacts (to call people by name) and “appear on top” (to pop up over other apps).</p></details>
+    <details><summary>It doesn’t hear me in the background on my Samsung</summary><p>Open Settings › Apps › Whitehole › Battery and choose <b>Unrestricted</b>. Then check Whitehole isn’t under “Sleeping apps” in Settings › Battery › Background usage limits.</p></details>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="final reveal">
+    <h2>Say hello to Whitehole.</h2>
+    <p class="sub">Free, for Android and iPhone.</p>
+    <div class="pair"><a class="btn btn-main dl" href="#" data-dl="android"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.5l1.6-2.8a.4.4 0 00-.7-.4l-1.6 2.8A9.8 9.8 0 0012 8a9.8 9.8 0 00-4.9 1.1L5.5 6.3a.4.4 0 00-.7.4l1.6 2.8A9.3 9.3 0 001.5 17h21a9.3 9.3 0 00-4.9-7.5zM7 14.4a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg> Get for Android</a><a class="btn btn-main dl" href="#" data-dl="ios"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.3.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-.9-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.8 1-2.8-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.6-1.3z"/></svg> Get for iOS</a></div>
+  </div>
+  <footer>Made by Vyan · Whitehole is an independent project and isn’t affiliated with Apple, Amazon or Marvel.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+/* Siri-style orb: soft colour blobs swirling inside a glass sphere.
+   Reacts to state (sleeping / idle / listening / thinking / speaking) and to the live
+   audio level. Colours lean towards the Pulse purple. */
+(function () {
+  const PALETTE = [
+    [255, 255, 255],  // starlight
+    [201, 211, 232],  // silver
+    [142, 151, 173],  // steel
+    [238, 243, 255],  // ice
+    [92, 100, 120],   // ink grey
+  ];
+  const STATES = {
+    loading:   { speed: 0.25, energy: 0.15, size: 0.80, glow: 0.25 },
+    offline:   { speed: 0.15, energy: 0.05, size: 0.78, glow: 0.10 },
+    sleeping:  { speed: 0.22, energy: 0.10, size: 0.80, glow: 0.25 },
+    idle:      { speed: 0.35, energy: 0.20, size: 0.84, glow: 0.35 },
+    listening: { speed: 0.70, energy: 0.55, size: 0.90, glow: 0.70 },
+    thinking:  { speed: 1.60, energy: 0.35, size: 0.80, glow: 0.55 },
+    speaking:  { speed: 0.90, energy: 0.65, size: 0.90, glow: 0.75 },
+  };
+
+  class Orb {
+    constructor(canvas, { mini = false } = {}) {
+      this.c = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.mini = mini;
+      this.state = 'loading';
+      this.target = { ...STATES.loading };
+      this.cur = { ...STATES.loading };
+      this.level = 0;
+      this.levelTarget = 0;
+      this.t = Math.random() * 100;
+      this.last = performance.now();
+      this.blobs = PALETTE.map((col, i) => ({
+        col, ph: i * 1.7, fx: 0.6 + i * 0.17, fy: 0.5 + ((i * 0.23) % 0.7), r: 0.5 + (i % 3) * 0.12,
+      }));
+      this.motion = 1;     // user's "Motion" setting
+      this.glowMul = 1;    // user's "Glow" setting
+      this.reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      requestAnimationFrame(this.frame.bind(this));
+    }
+    /** New colours: an array of five [r, g, b]; blobs fade to them smoothly. */
+    setPalette(cols) {
+      if (!cols || !cols.length) return;
+      this.blobs.forEach((b, i) => { b.target = cols[i % cols.length].slice(); if (!b.cur) b.cur = b.col.slice(); });
+    }
+    setStyle(motion = 1, glow = 1) { this.motion = motion; this.glowMul = glow; }
+    setState(s) { this.state = s; this.target = { ...(STATES[s] || STATES.idle) }; }
+    setLevel(v) { this.levelTarget = Math.max(0, Math.min(1, v)); }
+    frame(now) {
+      const dt = Math.min(0.05, (now - this.last) / 1000);
+      this.last = now;
+      for (const k in this.target) this.cur[k] += (this.target[k] - this.cur[k]) * Math.min(1, dt * 4);
+      this.level += (this.levelTarget - this.level) * Math.min(1, dt * (this.levelTarget > this.level ? 18 : 6));
+      if (this.state !== 'listening' && this.state !== 'speaking') this.levelTarget *= 0.9;
+      this.t += dt * (this.reduce ? 0.2 : this.cur.speed * this.motion);
+      for (const b of this.blobs) if (b.target) {
+        for (let k = 0; k < 3; k++) b.col[k] += (b.target[k] - b.col[k]) * Math.min(1, dt * 3);
+      }
+      this.draw();
+      requestAnimationFrame(this.frame.bind(this));
+    }
+    draw() {
+      const { ctx, c } = this;
+      const W = c.width, H = c.height, cx = W / 2, cy = H / 2;
+      const lvl = this.level;
+      const base = Math.min(W, H) / 2;
+      const R = base * (this.cur.size + lvl * 0.10) * (this.mini ? 1.0 : 0.82);
+      ctx.clearRect(0, 0, W, H);
+
+      // outer glow
+      if (!this.mini) {
+        const g = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, base);
+        const a = Math.min(1, (0.18 + this.cur.glow * 0.35 + lvl * 0.25) * this.glowMul);
+        const [gr, gg, gb] = this.blobs[0].col.map(Math.round);
+        g.addColorStop(0, `rgba(${gr},${gg},${gb},${a})`);
+        g.addColorStop(0.55, `rgba(${gr},${gg},${gb},${a * 0.35})`);
+        g.addColorStop(1, `rgba(${gr},${gg},${gb},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = '#07080b';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.globalCompositeOperation = 'lighter';
+      const e = this.cur.energy + lvl * 0.6;
+      for (const b of this.blobs) {
+        const t = this.t;
+        const x = cx + Math.sin(t * b.fx + b.ph) * R * (0.25 + e * 0.35);
+        const y = cy + Math.cos(t * b.fy + b.ph * 1.3) * R * (0.25 + e * 0.35);
+        const r = R * (b.r + 0.25 * Math.sin(t * 0.9 + b.ph) * e + lvl * 0.25);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r));
+        const [cr, cg, cb] = b.col.map(Math.round);
+        g.addColorStop(0, `rgba(${cr},${cg},${cb},0.85)`);
+        g.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.35)`);
+        g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, r), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      // glass: specular highlight + rim
+      const hl = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.45, 0, cx - R * 0.35, cy - R * 0.45, R * 0.9);
+      hl.addColorStop(0, 'rgba(255,255,255,0.35)');
+      hl.addColorStop(0.35, 'rgba(255,255,255,0.08)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hl;
+      ctx.fillRect(0, 0, W, H);
+      const rim = ctx.createRadialGradient(cx, cy, R * 0.82, cx, cy, R);
+      rim.addColorStop(0, 'rgba(0,0,0,0)');
+      rim.addColorStop(1, 'rgba(5,6,9,0.55)');
+      ctx.fillStyle = rim;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.10 + lvl * 0.2})`;
+      ctx.lineWidth = this.mini ? 1 : 1.5;
+      ctx.stroke();
+    }
+  }
+  window.Orb = Orb;
+
+  // Colour themes for the orb (first colour also tints the glow).
+  const hsl = (h, s, l) => {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [255 * f(0), 255 * f(8), 255 * f(4)].map(Math.round);
+  };
+  window.ORB_THEMES = {
+    whitehole: { name: 'Whitehole', cols: [[255, 255, 255], [201, 211, 232], [142, 151, 173], [238, 243, 255], [92, 100, 120]] },
+    pulse:   { name: 'Pulse',   cols: [[124, 77, 255], [255, 79, 216], [61, 124, 255], [45, 226, 230], [176, 132, 255]] },
+    siri:    { name: 'Siri',    cols: [[255, 64, 129], [255, 152, 0], [0, 200, 255], [120, 90, 255], [255, 220, 90]] },
+    ocean:   { name: 'Ocean',   cols: [[0, 122, 255], [0, 200, 220], [40, 90, 200], [100, 230, 255], [20, 60, 160]] },
+    sunset:  { name: 'Sunset',  cols: [[255, 94, 58], [255, 149, 0], [255, 45, 85], [255, 204, 0], [200, 60, 120]] },
+    emerald: { name: 'Emerald', cols: [[48, 209, 88], [0, 199, 190], [52, 170, 120], [160, 255, 120], [0, 120, 90]] },
+    rose:    { name: 'Rose',    cols: [[255, 55, 95], [255, 120, 180], [200, 80, 255], [255, 170, 200], [180, 40, 90]] },
+    gold:    { name: 'Gold',    cols: [[255, 196, 0], [255, 140, 0], [255, 230, 120], [210, 150, 40], [255, 250, 200]] },
+    mono:    { name: 'Silver',  cols: [[220, 220, 230], [140, 150, 170], [255, 255, 255], [90, 100, 120], [180, 190, 210]] },
+  };
+  window.orbPalette = (theme, hue) => {
+    if (theme === 'custom') return [0, 25, -25, 50, -50].map((d, i) => hsl((hue + d + 360) % 360, 90, [58, 62, 50, 68, 55][i]));
+    return (window.ORB_THEMES[theme] || window.ORB_THEMES.whitehole || window.ORB_THEMES.pulse).cols;
+  };
+})();
+
+</script>
+<script>
+(async function () {
+  // ---- friends-only gate: the download only appears for the invite code (checked by its hash) ----
+  const HASH = '57ef256ecc200d60d4440548fe0247b6fdd02d4c75fb0c738b025297740ba440';
+  const APK_X = 'QkdVNS8YAgpYPHUYBAFFPzAZAgAXOSok';   // the download address, locked with the invite code
+  const apk = c => [...atob(APK_X)].map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ c.charCodeAt(i % c.length))).join('');
+  const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let code = new URLSearchParams(location.search).get('i') || store.get('jarvis-invite') || '';
+  new window.Orb(document.getElementById('gateOrb')).setState('idle');
+  function unlock(c) {
+    store.set('jarvis-invite', c);
+    document.body.classList.remove('locked');
+    if (ios) document.body.classList.add('ios');
+    document.querySelectorAll('[data-dl]').forEach(a => {
+      const forIos = a.dataset.dl === 'ios';
+      a.href = forIos ? './ios/?i=' + encodeURIComponent(c) : apk(c);
+      if (!forIos) a.setAttribute('download', 'Whitehole.apk');
+      a.classList.toggle('alt', forIos !== ios);   // your own phone's button is the bright one
+    });
+    // Keep the code in the address bar so the QR code below carries it too.
+    if (!location.search.includes('i=')) history.replaceState(null, '', '?i=' + encodeURIComponent(c));
+    start();
+  }
+  if (code && await sha(code) === HASH) unlock(code);
+  document.getElementById('gateForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const c = document.getElementById('gateCode').value.trim();
+    if (await sha(c) === HASH) unlock(c);
+    else document.getElementById('gateErr').textContent = 'That code isn’t right. Ask your friend for their link.';
+  });
+
+  function start() {
+  // The orb, speaking.
+  const orb = new window.Orb(document.getElementById('orb'));
+  orb.setState('speaking');
+
+  // A little scripted conversation in the pop-up bubble.
+  const lines = [
+    ['Hey Whitehole, set a timer for ten minutes', 'Ten minutes, starting now.'],
+    ['What’s the tallest mountain in the UK?', 'Ben Nevis, at 1,345 metres.'],
+    ['Turn on the torch', 'Torch on.'],
+    ['Tell me a fun fact', 'Octopuses have three hearts and blue blood.'],
+  ];
+  const you = document.getElementById('you'), me = document.getElementById('me');
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  async function type(el, s, speed) {
+    el.textContent = ''; el.classList.add('caret');
+    for (const ch of s) { el.textContent += ch; await wait(speed); }
+    el.classList.remove('caret');
+  }
+  (async function loop() {
+    for (let i = 0; ; i = (i + 1) % lines.length) {
+      me.textContent = ''; orb.setState('listening');
+      await type(you, lines[i][0], 45);
+      orb.setState('thinking'); await wait(500);
+      orb.setState('speaking');
+      await type(me, lines[i][1], 32);
+      await wait(2600);
+    }
+  })();
+
+  // QR code of this page, for people on a computer.
+  try {
+    const q = qrcode(0, 'M'); q.addData(location.origin + location.pathname + location.search); q.make();
+    document.getElementById('qr').innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  } catch (e) {}
+
+  // Fade sections in as you scroll.
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  }
+})();
+
+  // Android download: the file comes straight from this site, and a sheet shows how to install it.
+  const sheet = document.getElementById('installSheet');
+  const closeSheet = () => { sheet.hidden = true; };
+  sheet.querySelector('.isheet-x').onclick = closeSheet;
+  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-dl="android"]');
+    if (!a || !a.href || a.href.endsWith('#')) return;
+    sheet.querySelector('.isheet-again').href = a.href;
+    sheet.querySelector('.isheet-again').setAttribute('download', 'Whitehole.apk');
+    setTimeout(() => { sheet.hidden = false; }, 300);
+  });
+</script>
+</body>
+</html>
