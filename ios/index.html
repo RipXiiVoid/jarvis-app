@@ -71,7 +71,7 @@ header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; 
 </style>
 </head>
 <body>
-<div id="gate"><div><h2>Invite only</h2><p>Open the link a friend sent you to use Whitehole.</p></div></div>
+<div id="gate"><div><h2>Invite only</h2><p>Open the link Vyan sent you to use Whitehole.</p></div></div>
 
 <div class="app">
   <header>
@@ -268,7 +268,11 @@ header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; 
   const HASH = '57ef256ecc200d60d4440548fe0247b6fdd02d4c75fb0c738b025297740ba440';
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
   const code = new URLSearchParams(location.search).get('i') || store.get('jarvis-invite') || '';
-  if (!code || await sha(code) !== HASH) { $('#gate').classList.add('show'); return; }
+  // Each friend has their own link; switched-off links stop working (see friends.json on the main page).
+  let friends = [];
+  try { friends = await fetch('../friends.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch {}
+  const __h = code ? await sha(code) : '';
+  if (!code || !friends.some(f => f.h === __h)) { store.set('jarvis-invite', null); $('#gate').classList.add('show'); return; }
   store.set('jarvis-invite', code);
 
   // ---- state ----
