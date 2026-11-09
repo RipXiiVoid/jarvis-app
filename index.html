@@ -521,6 +521,7 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     if (!c) return null;
     const h = await sha(c);
     const f = friends.find(x => x.h === h);
+    if (f && f.x && Date.now() > f.x) return { expired: true };   // a time-limited link that has run out
     return f ? { name: f.n ? unlockName(f.n, c) : '' } : null;
   }
   function unlock(c, who) {
@@ -554,17 +555,17 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     setTimeout(close, matchMedia('(prefers-reduced-motion: reduce)').matches ? 1800 : 3600);
   }
   const me = await check(code);
-  if (me) unlock(code, me);
+  if (me && !me.expired) unlock(code, me);
   else if (code) {
     store.set('jarvis-invite', null);
-    document.getElementById('gateErr').textContent = fromLink ? 'This invite link has been switched off. Ask Vyan for a new one.' : '';
+    document.getElementById('gateErr').textContent = me && me.expired ? 'This invite link has expired. Ask Vyan for a new one.' : fromLink ? 'This invite link has been switched off. Ask Vyan for a new one.' : '';
   }
   document.getElementById('gateForm').addEventListener('submit', async e => {
     e.preventDefault();
     const c = document.getElementById('gateCode').value.trim();
     const who = await check(c);
-    if (who) unlock(c, who);
-    else document.getElementById('gateErr').textContent = 'That code isn’t right. Ask Vyan for your own link.';
+    if (who && !who.expired) unlock(c, who);
+    else document.getElementById('gateErr').textContent = who ? 'That invite has expired. Ask Vyan for a new one.' : 'That code isn’t right. Ask Vyan for your own link.';
   });
 
   function start() {
