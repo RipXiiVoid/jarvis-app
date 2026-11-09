@@ -268,8 +268,7 @@ header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; 
   const HASH = '57ef256ecc200d60d4440548fe0247b6fdd02d4c75fb0c738b025297740ba440';
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
   const code = new URLSearchParams(location.search).get('i') || store.get('jarvis-invite') || '';
-  if (!code || await sha(code) !== HASH) { $('#gate').classList.add('show'); return; }
-  store.set('jarvis-invite', code);
+  // open to everyone: no invite code needed
 
   // ---- state ----
   const orb = new window.Orb($('#orb'));
