@@ -123,6 +123,30 @@ details p { color: var(--muted); margin: 10px 0 0; font-size: 15px; }
   background: radial-gradient(60% 80% at 50% 0%, rgba(220,228,245,.32), transparent 70%), var(--bg2); border: 1px solid var(--line); }
 .final h2 { margin-top: 0; }
 .final .sub { margin: 0 auto 28px; }
+[hidden] { display: none !important; }
+/* "Hello, name" welcome */
+#hello { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; text-align: center; opacity: 0; transition: opacity .5s ease; cursor: pointer; overflow: hidden; }
+#hello.on { opacity: 1; }
+#hello.out { opacity: 0; transform: scale(1.06); transition: opacity .8s ease, transform .8s ease; }
+#hello .hello-stars { position: absolute; inset: -50%; background-image:
+  radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent 60%), radial-gradient(1px 1px at 70% 20%, #fff, transparent 60%),
+  radial-gradient(1.2px 1.2px at 40% 80%, #fff, transparent 60%), radial-gradient(1px 1px at 85% 65%, #fff, transparent 60%),
+  radial-gradient(1.5px 1.5px at 10% 70%, #fff, transparent 60%), radial-gradient(1px 1px at 55% 50%, #fff, transparent 60%);
+  background-size: 300px 300px; opacity: .55; animation: hello-drift 30s linear infinite; }
+@keyframes hello-drift { to { transform: rotate(25deg) scale(1.1); } }
+#hello canvas { width: 190px; height: 190px; display: block; margin: 0 auto 6px; transform: scale(.4); opacity: 0; transition: transform 1.1s cubic-bezier(.2,1.4,.3,1), opacity .8s ease; }
+#hello.on canvas { transform: scale(1); opacity: 1; }
+#hello .hello-hi { font-size: 22px; color: rgba(255,255,255,.65); letter-spacing: .5px; opacity: 0; transform: translateY(10px); transition: all .7s ease .5s; }
+#hello.on .hello-hi { opacity: 1; transform: none; }
+#hello .hello-name { font-size: clamp(44px, 13vw, 84px); font-weight: 800; letter-spacing: -2px; line-height: 1.05; margin: 4px 16px 10px; }
+#hello .hello-name span { display: inline-block; opacity: 0; transform: translateY(26px) scale(.8); filter: blur(8px);
+  background: linear-gradient(100deg, #8d95a8 0%, #fff 40%, #cfd8ea 60%, #fff 80%); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: hello-letter .6s cubic-bezier(.2,1.3,.4,1) forwards, hello-shine 2.6s linear infinite; animation-delay: calc(.85s + var(--i) * .07s), 0s; }
+@keyframes hello-letter { to { opacity: 1; transform: none; filter: none; } }
+@keyframes hello-shine { to { background-position: -300% 0; } }
+#hello .hello-sub { color: rgba(255,255,255,.55); font-size: 16px; opacity: 0; transition: opacity .8s ease 1.6s; }
+#hello.on .hello-sub { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #hello *, #hello { animation: none !important; transition: opacity .3s !important; } #hello .hello-name span { opacity: 1; transform: none; filter: none; } }
 /* invite-only gate */
 body.locked > *:not(.aurora):not(#gate) { display: none !important; }
 #gate { display: none; min-height: 100vh; place-items: center; text-align: center; padding: 30px 22px; }
@@ -194,9 +218,18 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
   <div>
     <canvas id="gateOrb" width="360" height="360"></canvas>
     <h1>Invite only</h1>
-    <p>Whitehole is for friends right now. Open the link a friend sent you, scan their code, or type the invite code here.</p>
+    <p>Whitehole is invite-only. Open the link Vyan sent you, or type your invite code here.</p>
     <form id="gateForm"><input id="gateCode" placeholder="Invite code" autocomplete="off" autocapitalize="off" spellcheck="false"><button>Enter</button></form>
     <div class="err" id="gateErr"></div>
+  </div>
+</div>
+<div id="hello" hidden>
+  <div class="hello-stars"></div>
+  <div class="hello-in">
+    <canvas width="420" height="420"></canvas>
+    <div class="hello-hi">Hello,</div>
+    <div class="hello-name"></div>
+    <div class="hello-sub">Welcome to Whitehole</div>
   </div>
 </div>
 <div class="aurora"></div>
@@ -472,35 +505,66 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
 </script>
 <script>
 (async function () {
-  // ---- friends-only gate: the download only appears for the invite code (checked by its hash) ----
-  const HASH = '57ef256ecc200d60d4440548fe0247b6fdd02d4c75fb0c738b025297740ba440';
-  const APK_X = 'QkdVNS8YAgpYPHUYBAFFPzAZAgAXOSok';   // the download address, locked with the invite code
-  const apk = c => [...atob(APK_X)].map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ c.charCodeAt(i % c.length))).join('');
+  // ---- friends-only gate: each friend has their own link (?i=code). friends.json holds only a
+  // hash of each code and the friend's name locked with that code, so the list reveals nobody.
+  // Removing someone from the list switches their link off.
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
-  const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  const unlockName = (n, c) => { try { const k = new TextEncoder().encode(c); return new TextDecoder().decode(Uint8Array.from(atob(n), (ch, i) => ch.charCodeAt(0) ^ k[i % k.length])); } catch { return ''; } };
+  const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  let code = new URLSearchParams(location.search).get('i') || store.get('jarvis-invite') || '';
+  const fromLink = new URLSearchParams(location.search).get('i');
+  let code = fromLink || store.get('jarvis-invite') || '';
   new window.Orb(document.getElementById('gateOrb')).setState('idle');
-  function unlock(c) {
+  let friends = [];
+  try { friends = await fetch('./friends.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch {}
+  async function check(c) {
+    if (!c) return null;
+    const h = await sha(c);
+    const f = friends.find(x => x.h === h);
+    return f ? { name: f.n ? unlockName(f.n, c) : '' } : null;
+  }
+  function unlock(c, who) {
     store.set('jarvis-invite', c);
     document.body.classList.remove('locked');
     if (ios) document.body.classList.add('ios');
     document.querySelectorAll('[data-dl]').forEach(a => {
       const forIos = a.dataset.dl === 'ios';
-      a.href = forIos ? './ios/?i=' + encodeURIComponent(c) : apk(c);
+      a.href = forIos ? './ios/?i=' + encodeURIComponent(c) : './download/Whitehole.apk';
       if (!forIos) a.setAttribute('download', 'Whitehole.apk');
       a.classList.toggle('alt', forIos !== ios);   // your own phone's button is the bright one
     });
     // Keep the code in the address bar so the QR code below carries it too.
     if (!location.search.includes('i=')) history.replaceState(null, '', '?i=' + encodeURIComponent(c));
+    let seen = false; try { seen = sessionStorage.getItem('wh-hello') === c; sessionStorage.setItem('wh-hello', c); } catch {}
+    if (!seen) hello(who.name);
     start();
   }
-  if (code && await sha(code) === HASH) unlock(code);
+  // "Hello, Saleh": a welcome screen the first time someone opens their link.
+  function hello(name) {
+    const el = document.getElementById('hello');
+    const nameEl = el.querySelector('.hello-name');
+    const n = (name || '').trim();
+    nameEl.innerHTML = n ? [...n].map((ch, i) => `<span style="--i:${i}">${ch === ' ' ? '&nbsp;' : ch.replace(/[<&]/g, '')}</span>`).join('') : '<span style="--i:0">there</span>';
+    el.hidden = false;
+    try { new window.Orb(el.querySelector('canvas')).setState('speaking'); } catch {}
+    requestAnimationFrame(() => el.classList.add('on'));
+    let gone = false;
+    const close = () => { if (gone) return; gone = true; el.classList.add('out'); setTimeout(() => el.hidden = true, 900); };
+    el.addEventListener('click', close);
+    setTimeout(close, matchMedia('(prefers-reduced-motion: reduce)').matches ? 1800 : 3600);
+  }
+  const me = await check(code);
+  if (me) unlock(code, me);
+  else if (code) {
+    store.set('jarvis-invite', null);
+    document.getElementById('gateErr').textContent = fromLink ? 'This invite link has been switched off. Ask Vyan for a new one.' : '';
+  }
   document.getElementById('gateForm').addEventListener('submit', async e => {
     e.preventDefault();
     const c = document.getElementById('gateCode').value.trim();
-    if (await sha(c) === HASH) unlock(c);
-    else document.getElementById('gateErr').textContent = 'That code isn’t right. Ask your friend for their link.';
+    const who = await check(c);
+    if (who) unlock(c, who);
+    else document.getElementById('gateErr').textContent = 'That code isn’t right. Ask Vyan for your own link.';
   });
 
   function start() {
