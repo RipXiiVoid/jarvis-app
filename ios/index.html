@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Whitehole</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Whitehole">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+:root { --bg: #000; --text: #f5f5f7; --muted: #98989f; --cell: #1c1c1e; --line: rgba(255,255,255,.1); --blue: #0a84ff; --violet: #e9eefb; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
+  font: 17px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.app { position: fixed; inset: 0; display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; }
+header .t { font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--cell); }
+.icon-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+#chat { flex: 1; overflow-y: auto; padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
+.msg { max-width: 82%; padding: 10px 14px; border-radius: 20px; font-size: 16px; white-space: pre-wrap; word-wrap: break-word; animation: pop .25s ease; }
+.msg.user { align-self: flex-end; background: var(--blue); border-bottom-right-radius: 6px; }
+.msg.me { align-self: flex-start; background: var(--cell); border-bottom-left-radius: 6px; }
+@keyframes pop { from { transform: scale(.94); opacity: 0; } }
+.hello { margin: auto; text-align: center; color: var(--muted); padding: 0 30px; }
+.hello h2 { color: var(--text); margin: 0 0 6px; font-size: 26px; }
+.stage { display: grid; place-items: center; padding: 6px 0 4px; }
+#orb { width: 168px; height: 168px; touch-action: manipulation; }
+#hint { text-align: center; color: var(--muted); font-size: 15px; min-height: 22px; padding: 0 20px; }
+.bar { display: flex; gap: 8px; padding: 10px 14px 12px; }
+.bar input { flex: 1; min-width: 0; padding: 12px 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--cell); color: var(--text); font: inherit; font-size: 16px; }
+.bar .send { width: 46px; height: 46px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; flex: none; }
+.bar .send svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.app.kb .stage, .app.kb #hint { display: none; }
+.app.kb { padding-bottom: 0; }
+/* sheet */
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: flex-end; z-index: 5; }
+.sheet.open { display: flex; }
+.panel { width: 100%; max-height: 88%; overflow-y: auto; background: #111; border-radius: 22px 22px 0 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); animation: up .3s cubic-bezier(.2,.9,.3,1); }
+@keyframes up { from { transform: translateY(100%); } }
+.panel h3 { margin: 4px 4px 14px; font-size: 22px; }
+.group { background: var(--cell); border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: .5px solid var(--line); width: 100%; text-align: left; }
+.row:last-child { border-bottom: 0; }
+.row .grow { flex: 1; }
+.row .s { color: var(--muted); font-size: 13px; }
+.row select { background: none; color: var(--muted); border: 0; font: inherit; text-align: right; max-width: 55%; }
+.foot { color: var(--muted); font-size: 13px; padding: 0 6px 18px; }
+.blue { color: var(--blue); }
+.ok { color: #30d158; }
+.add-tip { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 4; padding: 14px 16px; border-radius: 18px;
+  background: rgba(40,40,46,.96); box-shadow: 0 10px 40px rgba(0,0,0,.6); font-size: 15px; display: none; }
+.add-tip.show { display: block; }
+.add-tip b { color: #fff; }
+.add-tip button { float: right; color: var(--blue); font-weight: 600; margin-left: 10px; }
+/* gate */
+#gate { position: fixed; inset: 0; display: none; place-items: center; text-align: center; padding: 30px; background: #000; z-index: 9; }
+#gate.show { display: grid; }
+#gate h2 { font-size: 28px; margin: 0 0 8px; }
+#gate p { color: var(--muted); margin: 0 0 18px; }
+#gate a { color: var(--blue); }
+</style>
+</head>
+<body>
+<div id="gate"><div><h2>Invite only</h2><p>Open the link a friend sent you to use Whitehole.</p></div></div>
+
+<div class="app">
+  <header>
+    <span class="t"><i id="dot"></i><span id="brainLabel">Whitehole</span></span>
+    <button class="icon-btn" id="openSettings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
+  </header>
+  <div id="chat"><div class="hello" id="hello"><h2>Hi, I’m Whitehole.</h2>Tap the orb and talk, or type below.</div></div>
+  <div class="stage"><canvas id="orb" width="336" height="336" aria-label="Tap to talk" role="button"></canvas></div>
+  <div id="hint">Tap the orb to talk</div>
+  <form class="bar" id="bar"><input id="text" placeholder="Ask anything" enterkeyhint="send" autocomplete="off">
+    <button class="send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></form>
+</div>
+
+<div class="add-tip" id="addTip"><button id="tipClose">Got it</button>Install Whitehole: tap <b>Share</b> <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#0a84ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg> then <b>Add to Home Screen</b>.</div>
+
+<div class="sheet" id="sheet"><div class="panel">
+  <h3>Settings</h3>
+  <div class="group" id="brainGroup"></div>
+  <div class="foot" id="brainFoot"></div>
+  <div class="group">
+    <label class="row"><span class="grow">Voice</span><select id="voice"></select></label>
+    <label class="row"><span class="grow">Speak replies</span><input type="checkbox" id="speak" checked></label>
+  </div>
+  <div class="group">
+    <button class="row" id="clear"><span class="grow" style="color:#ff453a">Clear conversation</span></button>
+  </div>
+  <div class="foot">“Hey Siri, Whitehole”: open the Shortcuts app, tap <b>+</b>, add <b>Open URLs</b> with this page’s address, and name the shortcut <b>Whitehole</b>. Apple doesn’t let other assistants listen in the background, so this is the closest to a wake word on iPhone.</div>
+  <div class="group"><button class="row" id="closeSettings"><span class="grow blue" style="text-align:center">Done</span></button></div>
+</div></div>
+
+<script>
+/* Siri-style orb: soft colour blobs swirling inside a glass sphere.
+   Reacts to state (sleeping / idle / listening / thinking / speaking) and to the live
+   audio level. Colours lean towards the Pulse purple. */
+(function () {
+  const PALETTE = [
+    [255, 255, 255],  // starlight
+    [201, 211, 232],  // silver
+    [142, 151, 173],  // steel
+    [238, 243, 255],  // ice
+    [92, 100, 120],   // ink grey
+  ];
+  const STATES = {
+    loading:   { speed: 0.25, energy: 0.15, size: 0.80, glow: 0.25 },
+    offline:   { speed: 0.15, energy: 0.05, size: 0.78, glow: 0.10 },
+    sleeping:  { speed: 0.22, energy: 0.10, size: 0.80, glow: 0.25 },
+    idle:      { speed: 0.35, energy: 0.20, size: 0.84, glow: 0.35 },
+    listening: { speed: 0.70, energy: 0.55, size: 0.90, glow: 0.70 },
+    thinking:  { speed: 1.60, energy: 0.35, size: 0.80, glow: 0.55 },
+    speaking:  { speed: 0.90, energy: 0.65, size: 0.90, glow: 0.75 },
+  };
+
+  class Orb {
+    constructor(canvas, { mini = false } = {}) {
+      this.c = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.mini = mini;
+      this.state = 'loading';
+      this.target = { ...STATES.loading };
+      this.cur = { ...STATES.loading };
+      this.level = 0;
+      this.levelTarget = 0;
+      this.t = Math.random() * 100;
+      this.last = performance.now();
+      this.blobs = PALETTE.map((col, i) => ({
+        col, ph: i * 1.7, fx: 0.6 + i * 0.17, fy: 0.5 + ((i * 0.23) % 0.7), r: 0.5 + (i % 3) * 0.12,
+      }));
+      this.motion = 1;     // user's "Motion" setting
+      this.glowMul = 1;    // user's "Glow" setting
+      this.reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      requestAnimationFrame(this.frame.bind(this));
+    }
+    /** New colours: an array of five [r, g, b]; blobs fade to them smoothly. */
+    setPalette(cols) {
+      if (!cols || !cols.length) return;
+      this.blobs.forEach((b, i) => { b.target = cols[i % cols.length].slice(); if (!b.cur) b.cur = b.col.slice(); });
+    }
+    setStyle(motion = 1, glow = 1) { this.motion = motion; this.glowMul = glow; }
+    setState(s) { this.state = s; this.target = { ...(STATES[s] || STATES.idle) }; }
+    setLevel(v) { this.levelTarget = Math.max(0, Math.min(1, v)); }
+    frame(now) {
+      const dt = Math.min(0.05, (now - this.last) / 1000);
+      this.last = now;
+      for (const k in this.target) this.cur[k] += (this.target[k] - this.cur[k]) * Math.min(1, dt * 4);
+      this.level += (this.levelTarget - this.level) * Math.min(1, dt * (this.levelTarget > this.level ? 18 : 6));
+      if (this.state !== 'listening' && this.state !== 'speaking') this.levelTarget *= 0.9;
+      this.t += dt * (this.reduce ? 0.2 : this.cur.speed * this.motion);
+      for (const b of this.blobs) if (b.target) {
+        for (let k = 0; k < 3; k++) b.col[k] += (b.target[k] - b.col[k]) * Math.min(1, dt * 3);
+      }
+      this.draw();
+      requestAnimationFrame(this.frame.bind(this));
+    }
+    draw() {
+      const { ctx, c } = this;
+      const W = c.width, H = c.height, cx = W / 2, cy = H / 2;
+      const lvl = this.level;
+      const base = Math.min(W, H) / 2;
+      const R = base * (this.cur.size + lvl * 0.10) * (this.mini ? 1.0 : 0.82);
+      ctx.clearRect(0, 0, W, H);
+
+      // outer glow
+      if (!this.mini) {
+        const g = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, base);
+        const a = Math.min(1, (0.18 + this.cur.glow * 0.35 + lvl * 0.25) * this.glowMul);
+        const [gr, gg, gb] = this.blobs[0].col.map(Math.round);
+        g.addColorStop(0, `rgba(${gr},${gg},${gb},${a})`);
+        g.addColorStop(0.55, `rgba(${gr},${gg},${gb},${a * 0.35})`);
+        g.addColorStop(1, `rgba(${gr},${gg},${gb},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = '#07080b';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.globalCompositeOperation = 'lighter';
+      const e = this.cur.energy + lvl * 0.6;
+      for (const b of this.blobs) {
+        const t = this.t;
+        const x = cx + Math.sin(t * b.fx + b.ph) * R * (0.25 + e * 0.35);
+        const y = cy + Math.cos(t * b.fy + b.ph * 1.3) * R * (0.25 + e * 0.35);
+        const r = R * (b.r + 0.25 * Math.sin(t * 0.9 + b.ph) * e + lvl * 0.25);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r));
+        const [cr, cg, cb] = b.col.map(Math.round);
+        g.addColorStop(0, `rgba(${cr},${cg},${cb},0.85)`);
+        g.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.35)`);
+        g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, r), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      // glass: specular highlight + rim
+      const hl = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.45, 0, cx - R * 0.35, cy - R * 0.45, R * 0.9);
+      hl.addColorStop(0, 'rgba(255,255,255,0.35)');
+      hl.addColorStop(0.35, 'rgba(255,255,255,0.08)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hl;
+      ctx.fillRect(0, 0, W, H);
+      const rim = ctx.createRadialGradient(cx, cy, R * 0.82, cx, cy, R);
+      rim.addColorStop(0, 'rgba(0,0,0,0)');
+      rim.addColorStop(1, 'rgba(5,6,9,0.55)');
+      ctx.fillStyle = rim;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.10 + lvl * 0.2})`;
+      ctx.lineWidth = this.mini ? 1 : 1.5;
+      ctx.stroke();
+    }
+  }
+  window.Orb = Orb;
+
+  // Colour themes for the orb (first colour also tints the glow).
+  const hsl = (h, s, l) => {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [255 * f(0), 255 * f(8), 255 * f(4)].map(Math.round);
+  };
+  window.ORB_THEMES = {
+    whitehole: { name: 'Whitehole', cols: [[255, 255, 255], [201, 211, 232], [142, 151, 173], [238, 243, 255], [92, 100, 120]] },
+    pulse:   { name: 'Pulse',   cols: [[124, 77, 255], [255, 79, 216], [61, 124, 255], [45, 226, 230], [176, 132, 255]] },
+    siri:    { name: 'Siri',    cols: [[255, 64, 129], [255, 152, 0], [0, 200, 255], [120, 90, 255], [255, 220, 90]] },
+    ocean:   { name: 'Ocean',   cols: [[0, 122, 255], [0, 200, 220], [40, 90, 200], [100, 230, 255], [20, 60, 160]] },
+    sunset:  { name: 'Sunset',  cols: [[255, 94, 58], [255, 149, 0], [255, 45, 85], [255, 204, 0], [200, 60, 120]] },
+    emerald: { name: 'Emerald', cols: [[48, 209, 88], [0, 199, 190], [52, 170, 120], [160, 255, 120], [0, 120, 90]] },
+    rose:    { name: 'Rose',    cols: [[255, 55, 95], [255, 120, 180], [200, 80, 255], [255, 170, 200], [180, 40, 90]] },
+    gold:    { name: 'Gold',    cols: [[255, 196, 0], [255, 140, 0], [255, 230, 120], [210, 150, 40], [255, 250, 200]] },
+    mono:    { name: 'Silver',  cols: [[220, 220, 230], [140, 150, 170], [255, 255, 255], [90, 100, 120], [180, 190, 210]] },
+  };
+  window.orbPalette = (theme, hue) => {
+    if (theme === 'custom') return [0, 25, -25, 50, -50].map((d, i) => hsl((hue + d + 360) % 360, 90, [58, 62, 50, 68, 55][i]));
+    return (window.ORB_THEMES[theme] || window.ORB_THEMES.whitehole || window.ORB_THEMES.pulse).cols;
+  };
+})();
+
+</script>
+<script>
+(async function () {
+  const $ = s => document.querySelector(s);
+  const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+
+  // ---- friends only ----
+  const HASH = '57ef256ecc200d60d4440548fe0247b6fdd02d4c75fb0c738b025297740ba440';
+  const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const code = new URLSearchParams(location.search).get('i') || store.get('jarvis-invite') || '';
+  if (!code || await sha(code) !== HASH) { $('#gate').classList.add('show'); return; }
+  store.set('jarvis-invite', code);
+
+  // ---- state ----
+  const orb = new window.Orb($('#orb'));
+  orb.setState('idle');
+  let history = []; try { history = JSON.parse(store.get('jarvis-history') || '[]'); } catch {}
+  let busy = false, lastGuest = 0;
+  const SYSTEM = () => `You are Whitehole, a friendly, witty voice assistant, like Siri. Replies are spoken aloud: plain sentences, no markdown, lists or emojis. Answer in one or two short sentences unless asked for more. Today is ${new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })}. Start your reply, and any change of tone, with one voice tag: [neutral], [excited], [thoughtful], [empathetic], [whisper] or [urgent]. Use only these tags and never mention them.`;
+  const STYLE = { neutral: [1, 1, 1], excited: [1.1, 1.08, 1], thoughtful: [.92, .97, .95], empathetic: [.9, .95, .85], whisper: [.92, .9, .5], urgent: [1.15, 1.05, 1] };
+
+  function addMsg(role, text) {
+    $('#hello')?.remove();
+    const el = document.createElement('div');
+    el.className = 'msg ' + (role === 'user' ? 'user' : 'me');
+    el.textContent = text;
+    $('#chat').appendChild(el);
+    $('#chat').scrollTop = 1e9;
+    return el;
+  }
+  history.slice(-20).forEach(m => addMsg(m.role, m.content));
+
+  // ---- voice out ----
+  const synth = window.speechSynthesis;
+  function voices() {
+    const vs = (synth?.getVoices() || []).filter(v => v.lang.startsWith('en'));
+    const sel = $('#voice'); const want = store.get('jarvis-voice');
+    sel.innerHTML = vs.map(v => `<option value="${v.name}">${v.name.replace(/\s*\(.*\)/, '')} · ${v.lang}</option>`).join('');
+    const pick = vs.find(v => v.name === want) || vs.find(v => /Daniel|Arthur/.test(v.name) && v.lang === 'en-GB') || vs.find(v => v.lang === 'en-GB') || vs[0];
+    if (pick) sel.value = pick.name;
+    return vs;
+  }
+  if (synth) { voices(); synth.onvoiceschanged = voices; }
+  $('#voice').onchange = e => store.set('jarvis-voice', e.target.value);
+  $('#speak').checked = store.get('jarvis-speak') !== '0';
+  $('#speak').onchange = e => store.set('jarvis-speak', e.target.checked ? '1' : '0');
+  let speaking = 0;
+  function say(text, tag) {
+    if (!synth || !$('#speak').checked || !text.trim()) return;
+    const u = new SpeechSynthesisUtterance(text);
+    const v = synth.getVoices().find(v => v.name === $('#voice').value); if (v) { u.voice = v; u.lang = v.lang; }
+    const st = STYLE[tag] || STYLE.neutral; u.rate = st[0]; u.pitch = st[1]; u.volume = st[2];
+    speaking++; orb.setState('speaking');
+    const pulse = setInterval(() => orb.setLevel(.35 + Math.random() * .5), 110);
+    u.onend = u.onerror = () => { clearInterval(pulse); if (--speaking <= 0) { speaking = 0; orb.setState('idle'); $('#hint').textContent = 'Tap the orb to talk'; } };
+    synth.speak(u);
+  }
+
+  // ---- brains: your own free OpenRouter account, else the free guest brain ----
+  const OR_KEY = () => store.get('jarvis-or-key');
+  async function freeModels() {
+    const c = store.get('jarvis-or-models'); if (c && Date.now() - (+store.get('jarvis-or-models-at') || 0) < 864e5) return c.split(',');
+    const pref = ['llama-3.3-70b', 'deepseek-chat', 'deepseek-v3', 'gemma-3-27b', 'mistral-small', 'qwen3', 'llama-4', 'gemma'];
+    try {
+      const d = (await (await fetch('https://openrouter.ai/api/v1/models')).json()).data.map(m => m.id).filter(i => i.endsWith(':free'));
+      d.sort((a, b) => { const r = x => { const i = pref.findIndex(p => x.includes(p)); return i < 0 ? 99 : i; }; return r(a) - r(b); });
+      store.set('jarvis-or-models', d.slice(0, 6).join(',')); store.set('jarvis-or-models-at', Date.now());
+      return d.slice(0, 6);
+    } catch { return ['meta-llama/llama-3.3-70b-instruct:free']; }
+  }
+  async function stream(url, key, model, messages, onTok) {
+    const r = await fetch(url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, key ? { Authorization: 'Bearer ' + key, 'X-Title': 'Whitehole' } : {}),
+      body: JSON.stringify(Object.assign({ model, messages, stream: true, temperature: .7, max_tokens: key ? 400 : 1500 }, key ? {} : { reasoning_effort: 'low' })) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '', got = false;
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line.startsWith('data:')) continue;
+        const d = line.slice(5).trim(); if (d === '[DONE]') return got;
+        try { const t = JSON.parse(d).choices?.[0]?.delta?.content; if (t) { got = true; onTok(t); } } catch {}
+      }
+    }
+    return got;
+  }
+  async function think(messages, onTok) {
+    if (OR_KEY()) for (const m of (await freeModels()).slice(0, 3)) {
+      try { if (await stream('https://openrouter.ai/api/v1/chat/completions', OR_KEY(), m, messages, onTok)) return; }
+      catch (e) { if (String(e).includes('401')) { store.set('jarvis-or-key', null); drawBrain(); break; } }
+    }
+    const wait = 30000 - (Date.now() - lastGuest);
+    // the free brain queues a streamed question until its next slot, so just wait
+    lastGuest = Date.now();
+    if (!await stream('https://text.pollinations.ai/openai', '', 'openai', messages, onTok)) throw new Error('No answer');
+  }
+
+  // ---- a conversation turn ----
+  async function ask(text) {
+    text = text.trim(); if (!text || busy) return;
+    busy = true; synth?.cancel();
+    addMsg('user', text);
+    history.push({ role: 'user', content: text });
+    orb.setState('thinking'); $('#hint').textContent = 'Thinking…';
+    const el = addMsg('assistant', '…');
+    let full = '', pending = '', shown = '', tag = 'neutral';
+    const flush = (final) => {
+      // speak sentence by sentence as the reply streams in; tags switch the tone
+      for (;;) {
+        const m = pending.match(/^\s*\[(\w+)\]\s*/); if (m) { tag = m[1].toLowerCase(); pending = pending.slice(m[0].length); }
+        const cut = pending.search(/[.!?](\s|$)|\[/);
+        if (cut < 0 || (pending[cut] === '[' && cut === 0)) break;
+        const end = pending[cut] === '[' ? cut : cut + 1;
+        if (pending[cut] !== '[' && !final && end === pending.length) break;
+        const s = pending.slice(0, end).trim(); pending = pending.slice(end);
+        if (s) say(s, tag);
+      }
+      if (final && pending.trim()) { say(pending.trim(), tag); pending = ''; }
+    };
+    try {
+      await think([{ role: 'system', content: SYSTEM() }, ...history.slice(-8)], t => {
+        full += t; pending += t;
+        shown = full.replace(/\[(neutral|excited|thoughtful|empathetic|whisper|urgent)\]\s*/gi, '');
+        el.textContent = shown; $('#chat').scrollTop = 1e9;
+        flush(false);
+      });
+      flush(true);
+      history.push({ role: 'assistant', content: shown.trim() });
+      store.set('jarvis-history', JSON.stringify(history.slice(-30)));
+      if (!speaking) { orb.setState('idle'); $('#hint').textContent = 'Tap the orb to talk'; }
+    } catch (e) {
+      history.pop();
+      const m = String(e.message || e);
+      const msg = m.startsWith('guest:') ? `Give me ${m.slice(6)} seconds. The free guest brain takes one question every half a minute. Connect a free account in Settings for quicker answers.`
+        : 'I couldn’t reach my brain. Check your internet and try again.';
+      el.textContent = msg; say(msg);
+      if (!speaking) orb.setState('idle');
+    }
+    busy = false;
+  }
+
+  // ---- voice in: tap the orb ----
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false;
+  function listen() {
+    if (busy) return;
+    if (listening) { rec?.stop(); return; }
+    if (speaking) { synth.cancel(); speaking = 0; orb.setState('idle'); return; }
+    if (!SR) { $('#hint').textContent = 'Voice needs Safari on iOS 14.5 or newer. You can type instead.'; $('#text').focus(); return; }
+    rec = new SR(); rec.lang = 'en-GB'; rec.interimResults = true; rec.continuous = false;
+    let final = '';
+    rec.onstart = () => { listening = true; orb.setState('listening'); $('#hint').textContent = 'Listening…'; };
+    rec.onresult = e => { let t = ''; for (const r of e.results) { t += r[0].transcript; if (r.isFinal) final = t; } $('#hint').textContent = t; orb.setLevel(.6); };
+    rec.onerror = e => { if (e.error === 'not-allowed') $('#hint').textContent = 'Allow the microphone for this site in Settings › Safari.'; };
+    rec.onend = () => { listening = false; orb.setState('idle'); if (final) ask(final); else if ($('#hint').textContent === 'Listening…') $('#hint').textContent = 'Tap the orb to talk'; };
+    try { rec.start(); } catch { listening = false; }
+  }
+  $('#orb').addEventListener('click', listen);
+  $('#bar').addEventListener('submit', e => { e.preventDefault(); const t = $('#text').value; $('#text').value = ''; $('#text').blur(); ask(t); });
+
+  // ---- one-tap free account (OpenRouter sign-in, comes straight back here) ----
+  const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  async function connect() {
+    const v = b64(crypto.getRandomValues(new Uint8Array(32)));
+    store.set('jarvis-pkce', v);
+    const ch = b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
+    const back = location.origin + location.pathname + '?i=' + encodeURIComponent(code);
+    location.href = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(back)}&code_challenge=${ch}&code_challenge_method=S256`;
+  }
+  const authCode = new URLSearchParams(location.search).get('code');
+  if (authCode && store.get('jarvis-pkce')) {
+    window.history.replaceState(null, "", location.pathname + "?i=" + encodeURIComponent(code));
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/auth/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: authCode, code_verifier: store.get('jarvis-pkce'), code_challenge_method: 'S256' }) });
+      const k = (await r.json()).key; if (k) { store.set('jarvis-or-key', k); addMsg('assistant', 'Connected. I have my own free brain now.'); }
+    } catch {}
+    store.set('jarvis-pkce', null);
+  }
+  function drawBrain() {
+    const on = !!OR_KEY();
+    $('#brainLabel').textContent = on ? 'Whitehole · free account' : 'Whitehole · guest';
+    $('#brainGroup').innerHTML = on
+      ? `<div class="row"><span class="grow">Free account<div class="s">Your own OpenRouter brain, about 50 answers a day</div></span><span class="ok">✓</span></div><button class="row" id="disc"><span class="grow" style="color:#ff453a">Disconnect</span></button>`
+      : `<button class="row" id="conn"><span class="grow blue">Connect a free account</span></button>`;
+    $('#brainFoot').textContent = on ? '' : 'One tap: sign in to OpenRouter (free, no card) and Whitehole gets its own free brain. Until then, a free guest brain answers (it may take a few seconds if you ask quickly).';
+    $('#conn') && ($('#conn').onclick = connect);
+    $('#disc') && ($('#disc').onclick = () => { store.set('jarvis-or-key', null); drawBrain(); });
+  }
+  drawBrain();
+
+  // ---- settings sheet & install tip ----
+  $('#openSettings').onclick = () => { drawBrain(); $('#sheet').classList.add('open'); };
+  $('#closeSettings').onclick = () => $('#sheet').classList.remove('open');
+  $('#sheet').onclick = e => { if (e.target.id === 'sheet') $('#sheet').classList.remove('open'); };
+  $('#clear').onclick = () => { history = []; store.set('jarvis-history', '[]'); $('#chat').innerHTML = ''; $('#sheet').classList.remove('open'); };
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  if (!standalone && !store.get('jarvis-tip')) $('#addTip').classList.add('show');
+  $('#tipClose').onclick = () => { $('#addTip').classList.remove('show'); store.set('jarvis-tip', '1'); };
+})();
+
+  // ---- keyboard: iPhones don't shrink the page for the keyboard, so fit the app above it ourselves ----
+  (function () {
+    const vv = window.visualViewport, app = document.querySelector('.app');
+    if (!vv || !app) return;
+    const fit = () => {
+      const open = window.innerHeight - vv.height > 120;
+      app.classList.toggle('kb', open);
+      app.style.height = open ? vv.height + 'px' : '';
+      app.style.bottom = open ? 'auto' : '';
+      app.style.top = open ? vv.offsetTop + 'px' : '';
+      if (open) { const c = document.getElementById('chat'); if (c) c.scrollTop = c.scrollHeight; }
+    };
+    vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+  })();
+</script>
+</body>
+</html>
