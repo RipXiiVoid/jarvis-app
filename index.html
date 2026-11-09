@@ -487,13 +487,15 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     if (ios) document.body.classList.add('ios');
     document.querySelectorAll('[data-dl]').forEach(a => {
       const forIos = a.dataset.dl === 'ios';
-      a.href = forIos ? './ios/' : './download/Whitehole.apk';
+      a.href = forIos ? './ios/?i=' + encodeURIComponent(c) : apk(c);
       if (!forIos) a.setAttribute('download', 'Whitehole.apk');
       a.classList.toggle('alt', forIos !== ios);   // your own phone's button is the bright one
     });
+    // Keep the code in the address bar so the QR code below carries it too.
+    if (!location.search.includes('i=')) history.replaceState(null, '', '?i=' + encodeURIComponent(c));
     start();
   }
-  unlock(code);   // open to everyone: no invite code needed any more
+  if (code && await sha(code) === HASH) unlock(code);
   document.getElementById('gateForm').addEventListener('submit', async e => {
     e.preventDefault();
     const c = document.getElementById('gateCode').value.trim();
