@@ -271,8 +271,20 @@ header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; 
   // Each friend has their own link; switched-off links stop working (see friends.json on the main page).
   let friends = [];
   try { friends = await fetch('../friends.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch {}
+  // A time-limited invite from Vyan's phone (?s=…): check its signature and time.
+  const tok = new URLSearchParams(location.search).get('s') || store.get('wh-signed') || '';
+  let signedOk = false;
+  if (tok) try {
+    const b64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((t.length + 3) % 4)), ch => ch.charCodeAt(0));
+    const [p, sg] = tok.split('.');
+    const pub = (await fetch('../invite.pub', { cache: 'no-store' }).then(r => r.ok ? r.text() : '')).trim();
+    const key = await crypto.subtle.importKey('spki', b64u(pub.replace(/\+/g, '-').replace(/\//g, '_')), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+    const [v, , until] = new TextDecoder().decode(b64u(p)).split('|');
+    signedOk = v === '1' && Date.now() <= +until && await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, b64u(sg), new TextEncoder().encode(p));
+  } catch { signedOk = false; }
+  if (tok) store.set('wh-signed', signedOk ? tok : null);
   const __h = code ? await sha(code) : '';
-  if (!code || !friends.some(f => f.h === __h && !(f.x && Date.now() > f.x))) { store.set('jarvis-invite', null); $('#gate').classList.add('show'); return; }
+  if (!signedOk && (!code || !friends.some(f => f.h === __h && !(f.x && Date.now() > f.x)))) { store.set('jarvis-invite', null); $('#gate').classList.add('show'); return; }
   store.set('jarvis-invite', code);
 
   // ---- state ----
