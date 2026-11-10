@@ -279,8 +279,9 @@ header .t i { width: 9px; height: 9px; border-radius: 50%; background: #30d158; 
     const [p, sg] = tok.split('.');
     const pub = (await fetch('../invite.pub', { cache: 'no-store' }).then(r => r.ok ? r.text() : '')).trim();
     const key = await crypto.subtle.importKey('spki', b64u(pub.replace(/\+/g, '-').replace(/\//g, '_')), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
-    const [v, , until] = new TextDecoder().decode(b64u(p)).split('|');
-    signedOk = v === '1' && Date.now() <= +until && await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, b64u(sg), new TextEncoder().encode(p));
+    const [v, nm, until] = new TextDecoder().decode(b64u(p)).split('|');
+    const gone = await sha((nm || '').trim().toLowerCase());
+    signedOk = v === '1' && !(+until && Date.now() > +until) && !friends.some(f => f.r === gone) && await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, b64u(sg), new TextEncoder().encode(p));
   } catch { signedOk = false; }
   if (tok) store.set('wh-signed', signedOk ? tok : null);
   const __h = code ? await sha(code) : '';
