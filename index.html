@@ -517,6 +517,22 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
   new window.Orb(document.getElementById('gateOrb')).setState('idle');
   let friends = [];
   try { friends = await fetch('./friends.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch {}
+  // Time-limited invites made on Vyan's phone: ?s=<payload>.<signature>. The page checks the signature
+  // with Vyan's public key (invite.pub), so nobody else can make one, and refuses it once the time is up.
+  const b64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((t.length + 3) % 4)), ch => ch.charCodeAt(0));
+  async function checkSigned(tok) {
+    try {
+      const [p, sg] = (tok || '').split('.');
+      if (!p || !sg) return null;
+      const pub = (await fetch('./invite.pub', { cache: 'no-store' }).then(r => r.ok ? r.text() : '')).trim();
+      if (!pub) return null;
+      const key = await crypto.subtle.importKey('spki', b64u(pub.replace(/\+/g, '-').replace(/\//g, '_')), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+      if (!await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, b64u(sg), new TextEncoder().encode(p))) return null;
+      const [v, name, until] = new TextDecoder().decode(b64u(p)).split('|');
+      if (v !== '1') return null;
+      return Date.now() > +until ? { expired: true } : { name, signed: true };
+    } catch { return null; }
+  }
   async function check(c) {
     if (!c) return null;
     const h = await sha(c);
@@ -525,17 +541,18 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     return f ? { name: f.n ? unlockName(f.n, c) : '' } : null;
   }
   function unlock(c, who) {
-    store.set('jarvis-invite', c);
+    const signed = c.startsWith('s:');
+    if (!signed) store.set('jarvis-invite', c);
     document.body.classList.remove('locked');
     if (ios) document.body.classList.add('ios');
     document.querySelectorAll('[data-dl]').forEach(a => {
       const forIos = a.dataset.dl === 'ios';
-      a.href = forIos ? './ios/?i=' + encodeURIComponent(c) : './download/Whitehole.apk';
+      a.href = forIos ? (signed ? './ios/?s=' + encodeURIComponent(c.slice(2)) : './ios/?i=' + encodeURIComponent(c)) : './download/Whitehole.apk';
       if (!forIos) a.setAttribute('download', 'Whitehole.apk');
       a.classList.toggle('alt', forIos !== ios);   // your own phone's button is the bright one
     });
     // Keep the code in the address bar so the QR code below carries it too.
-    if (!location.search.includes('i=')) history.replaceState(null, '', '?i=' + encodeURIComponent(c));
+    if (!signed && !location.search.includes('i=')) history.replaceState(null, '', '?i=' + encodeURIComponent(c));
     let seen = false; try { seen = sessionStorage.getItem('wh-hello') === c; sessionStorage.setItem('wh-hello', c); } catch {}
     if (!seen) hello(who.name);
     start();
@@ -554,10 +571,13 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     el.addEventListener('click', close);
     setTimeout(close, matchMedia('(prefers-reduced-motion: reduce)').matches ? 1800 : 3600);
   }
-  const me = await check(code);
+  const signedTok = new URLSearchParams(location.search).get('s') || (!fromLink && store.get('wh-signed')) || '';
+  const me = signedTok ? await checkSigned(signedTok) : await check(code);
+  if (signedTok && me && !me.expired) { store.set('wh-signed', signedTok); code = 's:' + signedTok; }
+  if (signedTok && (!me || me.expired)) store.set('wh-signed', null);
   if (me && !me.expired) unlock(code, me);
-  else if (code) {
-    store.set('jarvis-invite', null);
+  else if (code || signedTok) {
+    if (!signedTok) store.set('jarvis-invite', null);
     document.getElementById('gateErr').textContent = me && me.expired ? 'This invite link has expired. Ask Vyan for a new one.' : fromLink ? 'This invite link has been switched off. Ask Vyan for a new one.' : '';
   }
   document.getElementById('gateForm').addEventListener('submit', async e => {
