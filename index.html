@@ -208,9 +208,10 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
       <li><b>Open it.</b> Tap the download in the notification, or in <b>My Files › Downloads</b>.</li>
       <li><b>Allow it once.</b> If your phone asks, tap <b>Settings</b> › turn on <b>Allow from this source</b> › go back.</li>
       <li><b>Tap Install.</b> If Play Protect pops up, tap <b>More details › Install anyway</b>. It warns about every app that isn’t from the Play Store.</li>
-      <li><b>Open Whitehole</b> and tap <b>Turn on everything</b>. Say “Hey Whitehole”.</li>
+      <li><b>Open Whitehole.</b> It picks up your invite by itself. If it asks for one, come back here and tap <b>Open Whitehole</b> below.</li>
     </ol>
-    <a class="btn btn-main isheet-again" href="#">Download again</a>
+    <a class="btn btn-main isheet-open" href="#">Open Whitehole</a>
+    <a class="btn isheet-again" href="#" style="margin-top:8px">Download again</a>
   </div>
 </div>
 
@@ -530,7 +531,9 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
       if (!await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, b64u(sg), new TextEncoder().encode(p))) return null;
       const [v, name, until] = new TextDecoder().decode(b64u(p)).split('|');
       if (v !== '1') return null;
-      return Date.now() > +until ? { expired: true } : { name, signed: true };
+      const gone = await sha((name || '').trim().toLowerCase());
+      if (friends.some(f => f.r && f.r === gone)) return null;   // Vyan removed them
+      return +until && Date.now() > +until ? { expired: true } : { name, signed: true };   // 0 = forever
     } catch { return null; }
   }
   async function check(c) {
@@ -640,6 +643,14 @@ footer { text-align: center; color: var(--dim); font-size: 13px; padding: 40px 0
     if (!a || !a.href || a.href.endsWith('#')) return;
     sheet.querySelector('.isheet-again').href = a.href;
     sheet.querySelector('.isheet-again').setAttribute('download', 'Whitehole.apk');
+    // Your invite goes with you into the app: copied now (the app reads it when first opened), and the
+    // "Open Whitehole" button hands it over directly.
+    let inv = '', signedInv = ''; try { inv = localStorage.getItem('jarvis-invite') || ''; signedInv = localStorage.getItem('wh-signed') || ''; } catch {}
+    if (signedInv) inv = 's:' + signedInv;
+    if (inv) {
+      try { navigator.clipboard.writeText('whitehole-invite:' + inv); } catch {}
+      sheet.querySelector('.isheet-open').href = 'whitehole://activate?' + (signedInv ? 's=' + signedInv : 'i=' + encodeURIComponent(inv));
+    } else sheet.querySelector('.isheet-open').hidden = true;
     setTimeout(() => { sheet.hidden = false; }, 300);
   });
 </script>
